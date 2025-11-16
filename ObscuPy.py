@@ -1,3 +1,5 @@
+### Created by Ben281211 - available on github.com/Ben281211/ObscuPy ###
+
 import os
 import sys
 import re
@@ -189,7 +191,7 @@ setup(
     def create_ultimate_loader(self, encoded_payload, encoded_keys, module_name):
         self.log("Building ObscuPy loader")
         loader_template = f"""
-# Obfuscated by ObscuPy - 
+# Obfuscated by ObscuPy - https://github.com/Ben281211/ObscuPy
 
 import sys,base64 as b,zlib as z,os as o,tempfile as t,importlib.util as i,atexit as a,threading as th,time as tm
 from Crypto.Cipher import AES as A
