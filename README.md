@@ -22,12 +22,13 @@ It combines **Cython compilation**, multi-stage encryption, anti-debugging check
 
 ```bash
 pip install cython pycryptodome
+```
 
 ## Usage
 
 ```bash
 python ObscuPy.py input.py output.py
-
+```
 - input.py — Your original Python script
 - output.py — The encrypted loader that executes the protected binary
 
