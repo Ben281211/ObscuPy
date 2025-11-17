@@ -14,34 +14,36 @@ import glob
 import uuid
 import time
 import ast
+import random
+import string
+
+def gen_name(length):
+    alphabet = "Il"
+    return ''.join(random.choices(alphabet, k=length))
 
 class UltimateObfuscator:
     def __init__(self):
         self.loader_vars = {
-            'data': 'IlIIlIIlIIllIllI',
-            'key': 'lIIlIllIIlIIlIIl', 
-            'iv': 'IIlIllIIllIIlIIl',
-            'cipher': 'llIIlIIlIllIIllI',
-            'decompressed': 'IllIIllIIllIIlIl',
-            'code': 'lIllIIlIIlIIlIll',
-            'temp_file': 'IIllIIlIIlIllIIl',
-            'temp_dir': 'llIIlIllIIlIIllI',
-            'module': 'IllIIlIIllIIllII'
+            'data': gen_name(8),
+            'key': gen_name(8), 
+            'iv': gen_name(8),
+            'cipher': gen_name(8),
+            'decompressed': gen_name(8),
+            'code': gen_name(8),
+            'temp_file': gen_name(8),
+            'temp_dir': gen_name(8),
+            'module': gen_name(8)
         }
         
     def log(self, message):
         print(f"[ObscuPy] {message}")
     
     def unwrap_main_block(self, code: str) -> str:
-        """
-        Entfernt den `if __name__ == "__main__":` Block und gibt den enthaltenen Code zurück.
-        """
         tree = ast.parse(code)
         new_body = []
 
         for node in tree.body:
             if isinstance(node, ast.If):
-                # Prüfen, ob es sich um if __name__ == "__main__" handelt
                 if (isinstance(node.test, ast.Compare) and
                     isinstance(node.test.left, ast.Name) and
                     node.test.left.id == "__name__" and
@@ -50,17 +52,15 @@ class UltimateObfuscator:
                     len(node.test.comparators) == 1 and
                     isinstance(node.test.comparators[0], ast.Constant) and
                     node.test.comparators[0].value == "__main__"):
-                    # Hauptblock gefunden, fügen wir seinen Inhalt direkt ein
                     new_body.extend(node.body)
                     continue
-            # Alles andere bleibt unverändert
             new_body.append(node)
 
-        # AST zurück in Code umwandeln
         new_tree = ast.Module(body=new_body, type_ignores=[])
         return ast.unparse(new_tree)
 
     def create_highly_obfuscated_cython_extension(self, code, temp_dir):
+        self.log("Creating obfuscated Cython extension...")
         anti_re_code = """
 import sys
 import os
@@ -190,13 +190,33 @@ setup(
     
     def create_ultimate_loader(self, encoded_payload, encoded_keys, module_name):
         self.log("Building ObscuPy loader")
-        loader_template = f"""
-# Obfuscated by ObscuPy - https://github.com/Ben281211/ObscuPy
 
-import sys,base64 as b,zlib as z,os as o,tempfile as t,importlib.util as i,atexit as a,threading as th,time as tm
-from Crypto.Cipher import AES as A
-__B__=b.b64decode('{encoded_payload}');__K__=b.b64decode('{encoded_keys}');__X__,__K1__,__K2__=__K__[:32],__K__[32:64],__K__[64:80];__C__=A.new(__K1__,A.MODE_CBC,__K2__);__R__=bytearray(__C__.decrypt(__B__));[__R__.__setitem__(x,__R__[x]^__X__[x%len(__X__)]) for x in range(len(__R__))];__D__=z.decompress(__R__);__T__=t.mkdtemp(prefix='_'+str(hash(__D__)%99999));__F__=o.path.join(__T__,'{module_name}.pyd');open(__F__,'wb').write(__D__);__S__=i.spec_from_file_location('{module_name}',__F__);__M__=i.module_from_spec(__S__);sys.modules['{module_name}']=__M__;__S__.loader.exec_module(__M__);a.register(lambda F=__F__,T=__T__:th.Thread(target=lambda:F and tm.sleep(0.5) or (o.remove(F) if o.path.exists(F) else 0) or (o.rmdir(T) if o.path.exists(T) else 0)).start())
-"""
+        v_B      = gen_name(16)
+        v_K      = gen_name(16)
+        v_X      = gen_name(16)
+        v_K1     = gen_name(16)
+        v_K2     = gen_name(16)
+        v_C      = gen_name(16)
+        v_R      = gen_name(16)
+        v_D      = gen_name(16)
+        v_T      = gen_name(16)
+        v_F      = gen_name(16)
+        v_S      = gen_name(16)
+        v_M      = gen_name(16)
+
+        imp_sys  = gen_name(16)
+        imp_b64  = gen_name(16)
+        imp_zlib = gen_name(16)
+        imp_os   = gen_name(16)
+        imp_tmp  = gen_name(16)
+        imp_util = gen_name(16)
+        imp_exit = gen_name(16)
+        imp_thr  = gen_name(16)
+        imp_time = gen_name(16)
+        imp_aes  = gen_name(16)
+
+        loader_template = f"""# Obfuscated by ObscuPy - https://github.com/Ben281211/ObscuPy \n\nimport sys as {imp_sys},base64 as {imp_b64},zlib as {imp_zlib},os as {imp_os},tempfile as {imp_tmp},importlib.util as {imp_util},atexit as {imp_exit},threading as {imp_thr},time as {imp_time};from Crypto.Cipher import AES as {imp_aes}\n{v_B}=getattr({imp_b64},''.join(chr(i)for i in[98,54,52,100,101,99,111,100,101]))('{encoded_payload}');{v_K}=getattr({imp_b64},''.join(chr(i)for i in[98,54,52,100,101,99,111,100,101]))('{encoded_keys}');{v_X},{v_K1},{v_K2}={v_K}[:32],{v_K}[32:64],{v_K}[64:80];{v_C}=(lambda k1,iv:getattr({imp_aes},''.join(chr(i)for i in[110,101,119]))(k1,getattr({imp_aes},''.join(chr(i)for i in[77,79,68,69,95,67,66,67])),iv))({v_K1},{v_K2});{v_R}=bytearray(getattr({v_C},''.join(chr(i)for i in[100,101,99,114,121,112,116]))({v_B}));[{v_R}.__setitem__(i,{v_R}[i]^{v_X}[i%len({v_X})])for i in range(len({v_R}))];{v_D}=getattr({imp_zlib},''.join(chr(i)for i in[100,101,99,111,109,112,114,101,115,115]))({v_R});{v_T}=getattr({imp_tmp},''.join(chr(i)for i in[109,107,100,116,101,109,112]))(prefix=str(hash({v_D})%999999)+"_");{v_F}=getattr(getattr({imp_os},''.join(chr(i)for i in[112,97,116,104])),''.join(chr(i)for i in[106,111,105,110]))({v_T},"{module_name}.pyd");getattr(getattr(__builtins__,''.join(chr(i)for i in[111,112,101,110]))({v_F},"wb"),''.join(chr(i)for i in[119,114,105,116,101]))({v_D});{v_S}=getattr({imp_util},''.join(chr(i)for i in[115,112,101,99,95,102,114,111,109,95,102,105,108,101,95,108,111,99,97,116,105,111,110]))("{module_name}",{v_F});{v_M}=getattr({imp_util},''.join(chr(i)for i in[109,111,100,117,108,101,95,102,114,111,109,95,115,112,101,99]))({v_S});getattr({imp_sys},''.join(chr(i)for i in[109,111,100,117,108,101,115]))["{module_name}"]={v_M};(lambda s,m:getattr(getattr(s,''.join(chr(i)for i in[108,111,97,100,101,114])),''.join(chr(i)for i in[101,120,101,99,95,109,111,100,117,108,101]))(m))({v_S},{v_M});getattr({imp_exit},''.join(chr(i)for i in[114,101,103,105,115,116,101,114]))(lambda f={v_F},d={v_T}:getattr(getattr({imp_thr},''.join(chr(i)for i in[84,104,114,101,97,100]))(target=lambda:(getattr({imp_time},''.join(chr(i)for i in[115,108,101,101,112]))(0.25),getattr(getattr({imp_os},''.join(chr(i)for i in[112,97,116,104])),''.join(chr(i)for i in[101,120,105,115,116,115]))(f)and getattr({imp_os},''.join(chr(i)for i in[114,101,109,111,118,101]))(f),getattr(getattr({imp_os},''.join(chr(i)for i in[112,97,116,104])),''.join(chr(i)for i in[101,120,105,115,116,115]))(d)and getattr({imp_os},''.join(chr(i)for i in[114,109,100,105,114]))(d))),''.join(chr(i)for i in[115,116,97,114,116]))())"""
+
         return loader_template
     
     def add_loader_obfuscation(self, loader_code):
@@ -214,6 +234,7 @@ __B__=b.b64decode('{encoded_payload}');__K__=b.b64decode('{encoded_keys}');__X__
         return True
     
     def obfuscate_file(self, input_file, output_file):
+        self.log(f"Reading input file: {input_file}")
         with open(input_file, 'r', encoding='utf-8') as f:
             original_code = f.read()
         original_code = self.unwrap_main_block(original_code)
