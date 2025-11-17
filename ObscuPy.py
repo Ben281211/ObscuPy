@@ -91,12 +91,13 @@ def _is_debugging():
     return False
 
 if _is_debugging():
-    print("Sike Nigga")
+    print("Sike")
+    os._exit(1)
 
 def _watchdog():
     while True:
         if _is_debugging():
-            print("Sike Nigga")
+            print("Sike")
             os._exit(1)
 
 threading.Thread(target=_watchdog, daemon=True).start()
