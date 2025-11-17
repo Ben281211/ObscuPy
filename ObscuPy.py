@@ -61,25 +61,45 @@ class UltimateObfuscator:
 
     def create_highly_obfuscated_cython_extension(self, code, temp_dir):
         self.log("Creating obfuscated Cython extension...")
-        anti_re_code = """
-import sys
+        anti_re_code = """import sys
 import os
+import inspect
+import ctypes
+import threading
 import time
-if hasattr(sys, 'gettrace') and sys.gettrace() is not None:
-    os._exit(1)
-def _verify_integrity():
-    current_file = __file__
-    if not os.path.exists(current_file):
-        os._exit(1)
-    file_size = os.path.getsize(current_file)
-    if file_size < 1000 or file_size > 10000000:
-        os._exit(1)
-    return True
-_verify_integrity()
-_OPAQUE_TRUE = (hash(str(os.getpid())) % 1000) == (hash(str(os.getpid())) % 1000)
-_OPAQUE_FALSE = not _OPAQUE_TRUE
-if not _OPAQUE_TRUE:
-    os._exit(1)
+
+def _is_debugging():
+    if hasattr(sys, 'gettrace') and sys.gettrace() is not None:
+        return True
+    if 'pdb' in sys.modules or 'pydevd' in sys.modules or 'wdb' in sys.modules:
+        return True
+    try:
+        sys.settrace(None)
+        frame = inspect.currentframe().f_back
+        if frame.f_trace is not None:
+            return True
+    except:
+        pass
+    try:
+        kernel32 = ctypes.windll.kernel32
+        if kernel32.IsDebuggerPresent():
+            return True
+        if kernel32.CheckRemoteDebuggerPresent(kernel32.GetCurrentProcess(), ctypes.byref(ctypes.c_bool())) and ctypes.c_bool().value:
+            return True
+    except:
+        pass
+    return False
+
+if _is_debugging():
+    print("Sike Nigga")
+
+def _watchdog():
+    while True:
+        if _is_debugging():
+            print("Sike Nigga")
+            os._exit(1)
+
+threading.Thread(target=_watchdog, daemon=True).start()
 """
         protected_code = anti_re_code + "\n" + code
         unique_suffix = uuid.uuid4().hex[:8]
