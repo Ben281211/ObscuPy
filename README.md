@@ -7,6 +7,7 @@ It combines **Cython compilation**, multi-stage encryption, anti-debugging check
 
 - **Cython Compilation** → Converts Python code into native machine code.  
 - **AES + XOR + Compression** → Multi-stage encryption pipeline.  
+- **Memory-Only Execution** → Protected code never stays permanently on disk.  
 - **Anti-Debugging & Integrity Checks** → Program terminates if tampering is detected.  
 - **Opaque Control Flow & String Obfuscation** → Prevents reverse engineering and decompiling.  
 - **Automatic Cleanup** → Temporary files removed in the background.  
@@ -36,4 +37,3 @@ python ObscuPy.py input.py output.py
 - Your code must be Cython-compatible.
 - Ideal for commercial software, proprietary algorithms, or any Python code that must remain private.
 - Windows-only: Does not run on Linux or macOS.
-

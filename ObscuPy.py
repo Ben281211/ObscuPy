@@ -13,6 +13,7 @@ import shutil
 import glob
 import uuid
 import time
+import ast
 
 class UltimateObfuscator:
     def __init__(self):
@@ -31,35 +32,34 @@ class UltimateObfuscator:
     def log(self, message):
         print(f"[ObscuPy] {message}")
     
-    def apply_cython_specific_obfuscation(self, code):
-        self.log("Applying Cython-specific obfuscation...")
-        code = re.sub(r'#.*$', '', code, flags=re.MULTILINE)
-        code = re.sub(r'(\"\"\"[\s\S]*?\"\"\"|\'\'\'[\s\S]*?\'\'\')', '', code)
-        
-        def obfuscate_string(match):
-            string_content = match.group(0)
-            if len(string_content) < 6 or string_content.startswith(('"""', "'''")):
-                return string_content
-            content = string_content[1:-1]
-            if 10 <= len(content) <= 100:
-                chunks = [f"chr({ord(c)})" for c in content]
-                return f"''.join([{','.join(chunks)}])" if len(chunks) > 1 else chunks[0]
-            return string_content
-        
-        code = re.sub(r'("([^"\\]|\\.)*"|\'([^\'\\]|\\.)*\')', obfuscate_string, code)
-        
-        cython_directives = """
-#cython: language_level=3
-#cython: boundscheck=False
-#cython: wraparound=False  
-#cython: initializedcheck=False
-#cython: nonecheck=False
-#cython: overflowcheck=False
-#cython: cdivision=True
-"""
-        code = cython_directives + code
-        return code
-    
+    def unwrap_main_block(self, code: str) -> str:
+        """
+        Entfernt den `if __name__ == "__main__":` Block und gibt den enthaltenen Code zurück.
+        """
+        tree = ast.parse(code)
+        new_body = []
+
+        for node in tree.body:
+            if isinstance(node, ast.If):
+                # Prüfen, ob es sich um if __name__ == "__main__" handelt
+                if (isinstance(node.test, ast.Compare) and
+                    isinstance(node.test.left, ast.Name) and
+                    node.test.left.id == "__name__" and
+                    len(node.test.ops) == 1 and
+                    isinstance(node.test.ops[0], ast.Eq) and
+                    len(node.test.comparators) == 1 and
+                    isinstance(node.test.comparators[0], ast.Constant) and
+                    node.test.comparators[0].value == "__main__"):
+                    # Hauptblock gefunden, fügen wir seinen Inhalt direkt ein
+                    new_body.extend(node.body)
+                    continue
+            # Alles andere bleibt unverändert
+            new_body.append(node)
+
+        # AST zurück in Code umwandeln
+        new_tree = ast.Module(body=new_body, type_ignores=[])
+        return ast.unparse(new_tree)
+
     def create_highly_obfuscated_cython_extension(self, code, temp_dir):
         anti_re_code = """
 import sys
@@ -169,8 +169,8 @@ setup(
             os.remove(compiled_file)
         except:
             pass
-        shutil.rmtree(build_temp, ignore_errors=True)
-        shutil.rmtree(build_lib, ignore_errors=True)
+        shutil.rmtree(build_temp)
+        shutil.rmtree(build_lib)
 
         return binary_data, module_name
     
@@ -216,6 +216,7 @@ __B__=b.b64decode('{encoded_payload}');__K__=b.b64decode('{encoded_keys}');__X__
     def obfuscate_file(self, input_file, output_file):
         with open(input_file, 'r', encoding='utf-8') as f:
             original_code = f.read()
+        original_code = self.unwrap_main_block(original_code)
         temp_dir_name = "ObscuPy_temp"
         os.makedirs(temp_dir_name, exist_ok=True)
         cython_binary, module_name = self.create_highly_obfuscated_cython_extension(original_code, temp_dir_name)
