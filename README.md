@@ -34,6 +34,6 @@ python ObscuPy.py input.py output.py
 
 ## Notes
 
-- Your code must be Cython-compatible.
-- Ideal for commercial software, proprietary algorithms, or any Python code that must remain private.
-- Windows-only: Does not run on Linux or macOS.
+- Your code must be Cython-compatible
+- Ideal for commercial software, proprietary algorithms, or any Python code that must remain private
+- Windows-only: Does not run on Linux or macOS

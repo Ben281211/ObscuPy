@@ -1,4 +1,4 @@
-### Created by Ben281211 - available on github.com/Ben281211/ObscuPy ###
+### Created by Ben281211 - available on github.com/Ben281211/ObscuPy
 
 import os
 import sys
