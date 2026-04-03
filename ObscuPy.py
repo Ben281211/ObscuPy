@@ -18,396 +18,344 @@ import time
 import ast
 import random
 import string
+import traceback
+import types
+import argparse
 
-def gen_name(length):
-    alphabet = 'lI'
-    return ''.join(random.choices(alphabet, k=length))
+# ANSI Colors
+R = "\033[31m"
+G = "\033[32m"
+C = "\033[36m"
+Y = "\033[33m"
+M = "\033[35m"
+W = "\033[0m"
+B = "\033[1m"
 
-class UltimateObfuscator:
+
+def print_banner():
+    banner = f"""{R}{B}
+   ____  ___.                        __________        
+  / __ \ \_ |__   ______ ____  __ __ \______   \___.__.
+ / /  \ \ | __ \ /  ___// ___\|  |  \ |     ___<   |  |
+(  \___> > \_\ \\___ \\  \___|  |  / |    |    \___  |
+ \______/|___  /____  >\___  >____/  |____|    / ____|
+             \/     \/     \/                  \/      
+    {W}{Y}Advanced Python Obfuscation Framework v3.0{W}
+    {C}Created by Ben281211{W}
+    """
+    print(banner)
+
+
+def gen_name(length=None):
+    if length is None:
+        length = random.randint(15, 25)
+    return random.choice("lI") + "".join(random.choices("lI1", k=length - 1))
+
+
+class ObscuPyCore:
     def __init__(self):
-        self.loader_vars = {
-            'data': gen_name(8),
-            'key': gen_name(8), 
-            'iv': gen_name(8),
-            'cipher': gen_name(8),
-            'decompressed': gen_name(8),
-            'code': gen_name(8),
-            'temp_file': gen_name(8),
-            'temp_dir': gen_name(8),
-            'module': gen_name(8),
-            'passw': gen_name(8),
-            'xor_salt': gen_name(8),
-            'aes_salt': gen_name(8),
-            'imp_kdf': gen_name(8),
-            'imp_sha': gen_name(8),
-            'imp_crypto': gen_name(8),
-            'imp_importlib': gen_name(8)
-        }
-        
-    def log(self, message):
-        print(f"[ObscuPy] {message}")
-    
-    def obf_str(self, s):
-        return "''.join(chr(i) for i in [%s])" % ','.join(map(str, [ord(c) for c in s]))
-    
-    def unwrap_main_block(self, code: str) -> str:
-        tree = ast.parse(code)
-        new_body = []
+        self.log("Initializing core engine...", "info")
+        time.sleep(0.1)
+        self.log("Loading Oblivion Protocol heuristics...", "info")
+        time.sleep(0.1)
+        self.log("Deployment mode: ACTIVE", "success")
 
-        for node in tree.body:
-            if isinstance(node, ast.If):
-                if (isinstance(node.test, ast.Compare) and
-                    isinstance(node.test.left, ast.Name) and
-                    node.test.left.id == "__name__" and
-                    len(node.test.ops) == 1 and
-                    isinstance(node.test.ops[0], ast.Eq) and
-                    len(node.test.comparators) == 1 and
-                    isinstance(node.test.comparators[0], ast.Constant) and
-                    node.test.comparators[0].value == "__main__"):
-                    new_body.extend(node.body)
-                    continue
-            new_body.append(node)
+    def log(self, message, level="info"):
+        ts = time.strftime("%H:%M:%S")
+        if level == "info":
+            prefix = f"{C}[*]{W}"
+        elif level == "success":
+            prefix = f"{G}[+]{W}"
+        elif level == "error":
+            prefix = f"{R}[-]{W}"
+        elif level == "warn":
+            prefix = f"{Y}[!]{W}"
+        else:
+            prefix = f"[*]"
+        print(f"{W}[{ts}] {prefix} {message}{W}")
 
-        new_tree = ast.Module(body=new_body, type_ignores=[])
-        return ast.unparse(new_tree)
+    def obf_str(self, s, strong=False):
+        def s1(s):
+            return f"bytes.fromhex({repr(s.encode().hex())}).decode()"
 
-    def generate_junk_code(self):
-        junk = []
-        for _ in range(random.randint(5, 20)):
-            func_name = gen_name(random.randint(5, 15))
-            junk.append(f"def {func_name}():\n    a = {random.randint(1, 100)}\n    b = a * {random.randint(1, 10)}\n    if b % 2 == 0:\n        return b\n    else:\n        return a\n")
-        return "\n".join(junk) + "\n"
+        def s2(s):
+            k = random.randint(1, 255)
+            return f"(lambda: ''.join(chr(i^{k}) for i in [{','.join(map(str, [ord(c) ^ k for c in s]))}]))()"
 
-    def create_highly_obfuscated_cython_extension(self, code, temp_dir):
-        self.log("Creating obfuscated Cython extension...")
-        anti_re_code = """import sys
-import os
-import inspect
-import ctypes
-import threading
-import time
+        def s3(s):
+            k = random.randint(1, 100)
+            return f"(lambda: ''.join(chr(i-{k}) for i in [{','.join(map(str, [ord(c) + k for c in s]))}]))()"
 
-def _is_debugging():
-    if hasattr(sys, 'gettrace') and sys.gettrace() is not None:
-        return True
-    if 'pdb' in sys.modules or 'pydevd' in sys.modules or 'wdb' in sys.modules:
-        return True
-    try:
-        sys.settrace(None)
-        frame = inspect.currentframe().f_back
-        if frame.f_trace is not None:
-            return True
-    except:
-        pass
-    try:
-        kernel32 = ctypes.windll.kernel32
-        if kernel32.IsDebuggerPresent():
-            return True
-        is_remote = ctypes.c_bool()
-        kernel32.CheckRemoteDebuggerPresent(kernel32.GetCurrentProcess(), ctypes.byref(is_remote))
-        if is_remote.value:
-            return True
-    except:
-        pass
-    try:
-        if os.path.exists('/proc/self/status'):
-            with open('/proc/self/status', 'r') as f:
-                for line in f:
-                    if line.startswith('TracerPid:'):
-                        pid = int(line.split()[1])
-                        if pid != 0:
-                            return True
-    except:
-        pass
-    return False
+        return random.choice([s2, s3] if strong else [s1, s2, s3])(s)
 
-def _check_timing():
-    start = time.time()
-    total = 0
-    for i in range(1000000):
-        total += i % 10
-    end = time.time()
-    if end - start > 0.5:
-        return True
-    return False
+    def unwrap(self, code: str) -> str:
+        try:
+            tree = ast.parse(code)
+            new_body = [
+                n
+                for n in tree.body
+                if not (
+                    isinstance(n, ast.If)
+                    and isinstance(n.test, ast.Compare)
+                    and getattr(n.test.left, "id", "") == "__name__"
+                )
+            ]
+            for mn in [
+                n
+                for n in tree.body
+                if (
+                    isinstance(n, ast.If)
+                    and isinstance(n.test, ast.Compare)
+                    and getattr(n.test.left, "id", "") == "__name__"
+                )
+            ]:
+                new_body.extend(mn.body)
+            return ast.unparse(ast.Module(body=new_body, type_ignores=[]))
+        except Exception as e:
+            self.log(
+                f"AST unwrap failed, proceeding with original code. (Issue: {e})",
+                "warn",
+            )
+            return code
 
-def _is_vm():
-    try:
-        if os.path.exists('/sys/class/dmi/id/product_name'):
-            with open('/sys/class/dmi/id/product_name', 'r') as f:
-                content = f.read().lower()
-                if 'virtualbox' in content or 'vmware' in content or 'qemu' in content:
-                    return True
-    except:
-        pass
-    try:
-        if 'VIRTUAL' in os.environ.get('COMPUTERNAME', '').upper():
-            return True
-    except:
-        pass
-    return False
-
-if _is_debugging() or _check_timing() or _is_vm():
-    os._exit(1)
-
-def _watchdog():
-    while True:
-        if _is_debugging() or _check_timing() or _is_vm():
-            os._exit(1)
-        time.sleep(1)
-
-threading.Thread(target=_watchdog, daemon=True).start()
-"""
-        junk_code = self.generate_junk_code()
-        protected_code = anti_re_code + junk_code + "\n" + code
-        unique_suffix = uuid.uuid4().hex[:8]
-        module_name = f"ObscuPy_{unique_suffix}"
-
+    def build(self, code, temp_dir):
+        self.log("Compiling AST to Cython binary (this may take a moment)...", "info")
+        mod_name = f"lI1_{uuid.uuid4().hex[:6]}"
         work_dir = os.path.abspath(temp_dir)
         os.makedirs(work_dir, exist_ok=True)
-
-        pyx_file = os.path.join(work_dir, f"{module_name}.pyx")
-        with open(pyx_file, 'w', encoding='utf-8') as f:
-            f.write(protected_code)
-
-        compile_args = ["/Ox", "/Ob2", "/Ot", "/GS-", "/DNDEBUG"]
-        link_args = ["/OPT:REF", "/OPT:ICF", "/LTCG"]
-
-        build_lib = os.path.join(work_dir, "build_lib")
-        build_temp = os.path.join(work_dir, "build_temp")
-        os.makedirs(build_lib, exist_ok=True)
-        os.makedirs(build_temp, exist_ok=True)
-
-        setup_content = textwrap.dedent(f"""
-from setuptools import setup, Extension
-from Cython.Build import cythonize
-extensions = [
-    Extension(
-        "{module_name}",
-        ["{module_name}.pyx"],
-        extra_compile_args={compile_args},
-        extra_link_args={link_args},
-        define_macros=[("NDEBUG", "1")],
-    )
-]
-setup(
-    name="{module_name}_pkg",
-    ext_modules=cythonize(
-        extensions,
-        compiler_directives={{
-            'language_level': 3,
-            'boundscheck': False,
-            'wraparound': False,
-            'initializedcheck': False,
-            'nonecheck': False,
-            'overflowcheck': False,
-            'cdivision': True,
-        }}
-    ),
-)
-""")
-        setup_file = os.path.join(work_dir, "setup.py")
-        with open(setup_file, 'w', encoding='utf-8') as f:
-            f.write(setup_content)
-
-        time.sleep(0.2)
-
-        try:
-            result = subprocess.run(
-                [sys.executable, "setup.py", "build_ext", "--build-lib", build_lib, "--build-temp", build_temp, "-f"],
-                cwd=work_dir, capture_output=True, text=True, timeout=600
-            )
-            self.log(f"Cython build returncode: {result.returncode}")
-            if result.returncode != 0:
-                self.log(f"Build stderr: {result.stderr}")
-                return None, None
-        except Exception as e:
-            self.log(f"Cython compilation error: {str(e)}")
+        anti = textwrap.dedent("""
+            import sys,os,ctypes,time
+            def _():
+             try:
+              if getattr(sys,'gettrace',lambda:0)():os._exit(0)
+              if os.name == 'nt' and hasattr(ctypes, 'windll') and ctypes.windll.kernel32.IsDebuggerPresent():os._exit(0)
+             except:pass
+            _()
+        """)
+        with open(
+            os.path.join(work_dir, f"{mod_name}.pyx"), "w", encoding="utf-8"
+        ) as f:
+            f.write(anti + "\n" + code)
+        setup_py = f"from setuptools import setup, Extension;from Cython.Build import cythonize;setup(ext_modules=cythonize([Extension('{mod_name}',['{mod_name}.pyx'],extra_compile_args=['/Ox'])],compiler_directives={{'language_level':3}}))"
+        with open(os.path.join(work_dir, "setup.py"), "w") as f:
+            f.write(setup_py)
+        res = subprocess.run(
+            [sys.executable, "setup.py", "build_ext", "--inplace"],
+            cwd=work_dir,
+            capture_output=True,
+            text=True,
+        )
+        if res.returncode != 0:
+            self.log(f"Subprocess Failure: {res.stderr}", "error")
             return None, None
-
-        patterns = [os.path.join(build_lib, f"{module_name}.*.pyd"),
-                    os.path.join(build_lib, f"{module_name}.pyd")]
-        compiled_files = []
-        for p in patterns:
-            compiled_files.extend(glob.glob(p))
-
-        if not compiled_files:
-            self.log("No compiled extension found after build")
+        pyds = glob.glob(os.path.join(work_dir, f"{mod_name}*.pyd"))
+        if not pyds:
             return None, None
+        with open(pyds[0], "rb") as f:
+            data = f.read()
+        return data, mod_name
 
-        compiled_file = compiled_files[0]
-        try:
-            with open(compiled_file, 'rb') as f:
-                binary_data = f.read()
-        except Exception as e:
-            self.log(f"Error reading compiled binary: {str(e)}")
-            return None, None
-
-        try:
-            os.remove(compiled_file)
-        except:
-            pass
-        shutil.rmtree(build_temp, ignore_errors=True)
-        shutil.rmtree(build_lib, ignore_errors=True)
-
-        return binary_data, module_name
-    
-    def encrypt_binary(self, binary_data):
-        compressed = zlib.compress(binary_data, level=9)
-        xor_salt = os.urandom(16)
-        aes_salt = os.urandom(16)
-        passw = b'ObscuPy_V2'
-        xor_key = PBKDF2(passw, xor_salt, dkLen=32, count=100000, hmac_hash_module=SHA256)
-        aes_key = PBKDF2(passw, aes_salt, dkLen=32, count=100000, hmac_hash_module=SHA256)
-        aes_iv = os.urandom(16)
-        xor_encrypted = bytearray(b ^ xor_key[i % 32] for i, b in enumerate(compressed))
-        cipher = AES.new(aes_key, AES.MODE_CBC, aes_iv)
-        aes_encrypted = cipher.encrypt(pad(xor_encrypted, AES.block_size))
-        encoded_payload = base64.b64encode(aes_encrypted).decode('ascii')
-        encoded_keys = base64.b64encode(xor_salt + aes_salt + aes_iv).decode('ascii')
-        return encoded_payload, encoded_keys
-    
-    def create_ultimate_loader(self, encoded_payload, encoded_keys, module_name):
-        self.log("Building ObscuPy loader")
-
-        v_B = self.loader_vars['data']
-        v_K = self.loader_vars['key']
-        v_XS = self.loader_vars['xor_salt']
-        v_AS = self.loader_vars['aes_salt']
-        v_IV = self.loader_vars['iv']
-        v_X = gen_name(16)
-        v_K1 = gen_name(16)
-        v_C = self.loader_vars['cipher']
-        v_R = gen_name(16)
-        v_D = self.loader_vars['decompressed']
-        v_T = self.loader_vars['temp_dir']
-        v_F = self.loader_vars['temp_file']
-        v_S = gen_name(16)
-        v_M = self.loader_vars['module']
-        v_P = self.loader_vars['passw']
-
-        imp_sys = gen_name(16)
-        imp_b64 = gen_name(16)
-        imp_zlib = gen_name(16)
-        imp_os = gen_name(16)
-        imp_tmp = gen_name(16)
-        imp_util = gen_name(16)
-        imp_exit = gen_name(16)
-        imp_thr = gen_name(16)
-        imp_time = gen_name(16)
-        imp_crypto = self.loader_vars['imp_crypto']
-        imp_aes = gen_name(16)
-        imp_kdf = self.loader_vars['imp_kdf']
-        imp_sha = self.loader_vars['imp_sha']
-        imp_importlib = self.loader_vars['imp_importlib']
-
-        modules = {
-            'sys': imp_sys,
-            'base64': imp_b64,
-            'zlib': imp_zlib,
-            'os': imp_os,
-            'tempfile': imp_tmp,
-            'atexit': imp_exit,
-            'threading': imp_thr,
-            'time': imp_time,
-            'importlib.util': imp_util
+    def generate(self, payload, keys, mod_name, passw):
+        self.log("Synthesizing context mesh and packing layers...", "info")
+        v = {
+            k: gen_name()
+            for k in [
+                "sys",
+                "os",
+                "b64",
+                "zlb",
+                "aes",
+                "kdf",
+                "sha",
+                "utl",
+                "tmp",
+                "builtins",
+                "h",
+                "im",
+                "g",
+                "sh",
+                "lg",
+                "res",
+                "p",
+                "k",
+                "pw",
+                "mn",
+                "mobj",
+                "types",
+            ]
         }
+        disp = gen_name()
 
-        import_codes = []
-        import_codes.append(f"{imp_importlib}=__import__({self.obf_str('importlib')})")
-        for mod, alias in modules.items():
-            import_codes.append(f"{alias}={imp_importlib}.import_module({self.obf_str(mod)})")
+        real_logic = textwrap.dedent(f"""
+            import types
+            {disp}=lambda m,a:getattr(__import__(m,fromlist=['*'])if isinstance(m,str)else m,a)
+            {v["sys"]}=__import__({self.obf_str("sys")});{v["os"]}=__import__({self.obf_str("os")});{v["b64"]}=__import__({self.obf_str("base64")});{v["zlb"]}=__import__({self.obf_str("zlib")})
+            {v["aes"]}=__import__({self.obf_str("Crypto.Cipher.AES")},fromlist=['new']);{v["kdf"]}=__import__({self.obf_str("Crypto.Protocol.KDF")},fromlist=['PBKDF2']).PBKDF2;{v["sha"]}=__import__({self.obf_str("Crypto.Hash.SHA256")},fromlist=['*'])
+            _K={disp}({v["b64"]}, {self.obf_str("b64decode")})({v["k"]});_D={disp}({v["b64"]}, {self.obf_str("b64decode")})({v["p"]})
+            _xs,_as,_iv=_K[:16],_K[16:32],_K[32:48];_xk={v["kdf"]}({v["pw"]},_xs,dkLen=32,count=100000,hmac_hash_module={v["sha"]});_ak={v["kdf"]}({v["pw"]},_as,dkLen=32,count=100000,hmac_hash_module={v["sha"]})
+            _c={v["aes"]}.new(_ak,{v["aes"]}.MODE_CBC,_iv);_r=bytearray(_c.decrypt(_D))
+            for i in range(len(_r)):_r[i]^=_xk[i%32]
+            _b={disp}({v["zlb"]},{self.obf_str("decompress")})(_r);_t={disp}({self.obf_str("tempfile")},{self.obf_str("mkdtemp")})(prefix={self.obf_str("lI1_")});_f={disp}({disp}({v["os"]},{self.obf_str("path")}),{self.obf_str("join")})(_t,{v["mn"]}+{self.obf_str(".pyd")})
+            {v["h"]}={disp}({self.obf_str("builtins")},{self.obf_str("open")})(_f,{self.obf_str("wb")});{v["h"]}.write(_b);{v["h"]}.close()
+            _u=__import__({self.obf_str("importlib.util")},fromlist=['util']);_s={disp}(_u,{self.obf_str("spec_from_file_location")})({v["mn"]},_f);{v["mobj"]}={disp}(_u,{self.obf_str("module_from_spec")})(_s);setattr({v["mobj"]},{self.obf_str("__file__")},__file__);setattr({v["mobj"]},{self.obf_str("__name__")},{self.obf_str("__main__")})
+            {disp}({v["sys"]},{self.obf_str("modules")})[{v["mn"]}]={v["mobj"]};{disp}({disp}(_s,{self.obf_str("loader")}),{self.obf_str("exec_module")})({v["mobj"]})
+            import atexit;atexit.register(lambda:__import__('subprocess').Popen([{v["sys"]}.executable, '-c', f"import time,os;time.sleep(2);os.remove(r'{{_f}}');os.rmdir(r'{{_t}}')"], **({{'creationflags': 0x08000000}} if {v["os"]}.name == 'nt' else {{}})))
+        """).strip()
 
-        imports = ';'.join(import_codes) + ';'
+        def shard(data, size=45):
+            return [data[i : i + size] for i in range(0, len(data), size)]
 
-        setup_codes = [
-            # Import AES module - result is the module itself
-            f"{imp_aes}=__import__({self.obf_str('Crypto.Cipher.AES')},fromlist=[{self.obf_str('AES')}])",
-            # Import PBKDF2 function from KDF module
-            f"{imp_crypto}=__import__({self.obf_str('Crypto.Protocol.KDF')},fromlist=[{self.obf_str('PBKDF2')}])",
-            f"{imp_kdf}=getattr({imp_crypto},{self.obf_str('PBKDF2')})",
-            # Import SHA256 module - HMAC needs the module (which has .digest_size), not just the 'new' function
-            f"{imp_sha}=__import__({self.obf_str('Crypto.Hash.SHA256')},fromlist=[{self.obf_str('SHA256')}])",
+        self.log("Injecting randomized entropy and obfuscating strings...", "info")
+        l_sh = shard(real_logic, 250)
+        p_sh = shard(payload, 4096)
+        k_sh = shard(keys, 32)
+
+        all_shards = []
+        p_tag, k_tag, l_tag = [gen_name(10) for _ in range(3)]
+
+        def add_s(shards, tag):
+            for i, s in enumerate(shards):
+                key = f"{tag}_{str(i).zfill(4)}"
+                all_shards.append(
+                    f"{gen_name()} = ({random.randint(1, 999)} ^ 0x{random.randint(1, 0xFF):x}) | int(math.cos({random.random()})); (lambda f,k,v: f(k,v))(globals().__setitem__, {repr(key)}, {repr(s)})"
+                )
+
+        add_s(l_sh, l_tag)
+        add_s(p_sh, p_tag)
+        add_s(k_sh, k_tag)
+        random.shuffle(all_shards)
+
+        header = f"### Created by Ben281211 - available on github.com/Ben281211/ObscuPy\nimport base64, zlib, math, types\n"
+        footer = [
+            f"{v['g']} = globals()",
+            f"{v['p']} = ''.join([{v['g']}[k] for k in sorted([k for k in {v['g']} if k.startswith({repr(p_tag + '_')})])])",
+            f"{v['k']} = ''.join([{v['g']}[k] for k in sorted([k for k in {v['g']} if k.startswith({repr(k_tag + '_')})])])",
+            f"{v['pw']} = bytes.fromhex({self.obf_str(passw.hex(), strong=True)}); {v['mn']} = {self.obf_str(mod_name)}",
+            f"_code_str = ''.join([{v['g']}[k] for k in sorted([k for k in {v['g']} if k.startswith({repr(l_tag + '_')})])])",
+            f"exec(compile(_code_str, '<string>', 'exec'), {v['g']})",
         ]
-        setups = ';'.join(setup_codes) + ';'
 
-        pass_list = ','.join(str(ord(c)) for c in 'ObscuPy_V2')
-        pass_code = f"{v_P}=bytes([{pass_list}]);"
+        body = "\n".join(all_shards) + "\n"
+        footer_c = ""
+        for i, line in enumerate(footer):
+            noise = f"{gen_name()} = ({random.randint(1, 999)} << {random.randint(1, 2)}) ^ 0x{random.randint(1, 0xFF):x} if {random.randint(1, 100)} > 0 else math.pi"
+            footer_c += f"{noise}; {line}\n"
 
-        # Note: hmac_hash_module needs the module imp_sha, not a function
-        loader_template = f"""# Obfuscated by ObscuPy - https://github.com/Ben281211/ObscuPy \n\n{imports}{setups}{pass_code}{v_B}=getattr({imp_b64},{self.obf_str('b64decode')})('{encoded_payload}');{v_K}=getattr({imp_b64},{self.obf_str('b64decode')})('{encoded_keys}');{v_XS},{v_AS},{v_IV}={v_K}[:16],{v_K}[16:32],{v_K}[32:];{v_X}={imp_kdf}({v_P},{v_XS},dkLen=32,count=100000,hmac_hash_module={imp_sha});{v_K1}={imp_kdf}({v_P},{v_AS},dkLen=32,count=100000,hmac_hash_module={imp_sha});{v_C}=(lambda k1,iv:getattr({imp_aes},{self.obf_str('new')})(k1,getattr({imp_aes},{self.obf_str('MODE_CBC')}),iv))({v_K1},{v_IV});{v_R}=bytearray(getattr({v_C},{self.obf_str('decrypt')})({v_B}));[{v_R}.__setitem__(i,{v_R}[i]^{v_X}[i%len({v_X})])for i in range(len({v_R}))];{v_D}=getattr({imp_zlib},{self.obf_str('decompress')})({v_R});{v_T}=getattr({imp_tmp},{self.obf_str('mkdtemp')})(prefix=str(hash({v_D})%999999)+"_");{v_F}=getattr(getattr({imp_os},{self.obf_str('path')}),{self.obf_str('join')})({v_T},"{module_name}.pyd");getattr(getattr(__builtins__,{self.obf_str('open')})({v_F},{self.obf_str('wb')}),{self.obf_str('write')})({v_D});{v_S}=getattr({imp_util},{self.obf_str('spec_from_file_location')})("{module_name}",{v_F});{v_M}=getattr({imp_util},{self.obf_str('module_from_spec')})({v_S});getattr({imp_sys},{self.obf_str('modules')})["{module_name}"]={v_M};(lambda s,m:getattr(getattr(s,{self.obf_str('loader')}),{self.obf_str('exec_module')})(m))({v_S},{v_M});getattr({imp_exit},{self.obf_str('register')})(lambda f={v_F},d={v_T}:getattr(getattr({imp_thr},{self.obf_str('Thread')})(target=lambda:(getattr({imp_time},{self.obf_str('sleep')})(0.25),getattr(getattr({imp_os},{self.obf_str('path')}),{self.obf_str('exists')})(f)and getattr({imp_os},{self.obf_str('remove')})(f),getattr(getattr({imp_os},{self.obf_str('path')}),{self.obf_str('exists')})(d)and getattr({imp_os},{self.obf_str('rmdir')})(d))),{self.obf_str('start')})())"""
+        return header + body + footer_c
 
-        return loader_template
-    
-    def add_loader_obfuscation(self, loader_code):
-        obfuscated_loader = re.sub(r'[ \t]+', ' ', loader_code)
-        return obfuscated_loader.strip()
-    
-    def verify_obfuscation(self, original_file, obfuscated_file, cython_binary):
-        self.log("Verifying obfuscation...")
-        original_size = os.path.getsize(original_file)
-        obfuscated_size = os.path.getsize(obfuscated_file)
-        self.log(f"Original size: {original_size} bytes")
-        self.log(f"Obfuscated size: {obfuscated_size} bytes") 
-        self.log(f"Cython binary size: {len(cython_binary)} bytes")
-        self.log(f"Total protection ratio: {obfuscated_size/original_size*100:.1f}%")
-        return True
-    
-    def obfuscate_file(self, input_file, output_file):
-        self.log(f"Reading input file: {input_file}")
-        with open(input_file, 'r', encoding='utf-8') as f:
-            original_code = f.read()
-        original_code = self.unwrap_main_block(original_code)
-        temp_dir_name = "ObscuPy_temp"
-        os.makedirs(temp_dir_name, exist_ok=True)
-        cython_binary, module_name = self.create_highly_obfuscated_cython_extension(original_code, temp_dir_name)
-        if cython_binary is None:
-            self.log("Failed to create Cython extension")
-            shutil.rmtree(temp_dir_name, ignore_errors=True)
+    def encrypt(self, input_file, output_file):
+        try:
+            self.log(f"Target selected: {B}{input_file}{W}", "info")
+            with open(input_file, "r", encoding="utf-8") as f:
+                code = f.read()
+            code = self.unwrap(code)
+            temp_dir = "ObscuPy_internal_tmp"
+            bin_data, mod_name = self.build(code, temp_dir)
+            if not bin_data:
+                return False
+            self.log(f"Applying zlib compression...", "info")
+            z_bin = zlib.compress(bin_data, level=9)
+            self.log(f"Deriving crypto keys (PBKDF2) & applying AES-256-CBC...", "info")
+            passw, xs, as_, iv = [os.urandom(16) for _ in range(4)]
+            xk = PBKDF2(passw, xs, dkLen=32, count=100000, hmac_hash_module=SHA256)
+            ak = PBKDF2(passw, as_, dkLen=32, count=100000, hmac_hash_module=SHA256)
+            aes_data = base64.b64encode(
+                AES.new(ak, AES.MODE_CBC, iv).encrypt(
+                    pad(bytearray(b ^ xk[i % 32] for i, b in enumerate(z_bin)), 16)
+                )
+            ).decode()
+            keys_data = base64.b64encode(xs + as_ + iv).decode()
+
+            final_loader = self.generate(aes_data, keys_data, mod_name, passw)
+
+            with open(output_file, "w", encoding="utf-8") as f:
+                f.write(final_loader)
+
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            self.log(
+                f"Payload successfully secured. Size: {len(final_loader)} bytes",
+                "success",
+            )
+            return True
+        except Exception as e:
+            self.log(f"Operational Failure: {e}", "error")
             return False
-        encoded_payload, encoded_keys = self.encrypt_binary(cython_binary)
-        loader_code = self.create_ultimate_loader(encoded_payload, encoded_keys, module_name)
-        final_loader = self.add_loader_obfuscation(loader_code)
-        with open(output_file, 'w', encoding='utf-8') as f:
-            f.write(final_loader)
-        shutil.rmtree(temp_dir_name, ignore_errors=True)
-        return self.verify_obfuscation(input_file, output_file, cython_binary)
+
 
 def main():
-    if len(sys.argv) < 3:
-        print("Usage: python obfuscator.py input.py output.py")
-        sys.exit(1)
-    
-    input_file = sys.argv[1]
-    output_file = sys.argv[2]
+    try:
+        import colorama
 
-    if input_file == output_file:
-        print("Error: Input and output cannot be the same")
-        sys.exit(1)
-    
-    if not os.path.exists(input_file):
-        print(f"Error: Input file '{input_file}' does not exist")
-        sys.exit(1)
-    
-    try:
-        import Cython
+        colorama.just_fix_windows_console()
     except ImportError:
-        print("Error: Cython is required. Install with 'pip install Cython'")
+        os.system("")  # Enable ANSI escape codes on Windows command prompt
+
+    parser = argparse.ArgumentParser(
+        description="ObscuPy - Ultimate Python Obfuscator",
+        formatter_class=argparse.RawTextHelpFormatter,
+        add_help=False,
+    )
+    parser.add_argument("input", nargs="?", help="Input Python script to obfuscate")
+    parser.add_argument(
+        "-o",
+        "--output",
+        default="obfuscated.py",
+        help="Output file name (default: obfuscated.py)",
+    )
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version="ObscuPy v3.0",
+        help="Show program's version number and exit",
+    )
+    parser.add_argument(
+        "-h",
+        "--help",
+        action="help",
+        default=argparse.SUPPRESS,
+        help="Show this help message and exit",
+    )
+
+    args = parser.parse_args()
+
+    print_banner()
+
+    if not args.input:
+        parser.print_help()
         sys.exit(1)
-    
-    try:
-        from Crypto.Cipher import AES
-    except ImportError:
-        print("Error: pycryptodome is required. Install with 'pip install pycryptodome'")
+
+    if not args.input.lower().endswith(".py"):
+        print(
+            f"[{time.strftime('%H:%M:%S')}] {R}[-]{W} Invalid file extension. Input must be a .py file."
+        )
         sys.exit(1)
-    
-    obfuscator = UltimateObfuscator()
-    
-    if obfuscator.obfuscate_file(input_file, output_file):
-        obfuscator.log(f"SUCCESS: {input_file} → {output_file}")
+
+    if not os.path.exists(args.input):
+        print(
+            f"[{time.strftime('%H:%M:%S')}] {R}[-]{W} Input file not found: {args.input}"
+        )
+        sys.exit(1)
+
+    core = ObscuPyCore()
+    print(f"{Y}" + "-" * 60 + f"{W}")
+
+    start_time = time.time()
+    success = core.encrypt(args.input, args.output)
+
+    print(f"{Y}" + "-" * 60 + f"{W}")
+    if success:
+        elapsed = time.time() - start_time
+        print(
+            f"[{time.strftime('%H:%M:%S')}] {G}[+]{W} Operation completed in {B}{elapsed:.2f}s{W}."
+        )
+        print(
+            f"[{time.strftime('%H:%M:%S')}] {G}[+]{W} Output saved to: {B}{args.output}{W}"
+        )
     else:
-        obfuscator.log("OBFUSCATION FAILED")
+        print(f"[{time.strftime('%H:%M:%S')}] {R}[-]{W} Obfuscation process failed.")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

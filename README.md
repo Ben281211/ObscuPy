@@ -1,7 +1,7 @@
 # ObscuPy – Ultimate Python Obfuscator (Windows-Only)
 Created by **Ben281211** — https://github.com/Ben281211/ObscuPy
 
-**ObscuPy** is an advanced, high-security Python obfuscator designed to make reverse-engineering *extremely* difficult. It uses **Cython compilation**, **multi-layer encryption**, **anti-debugging**, and a **memory-only execution loader** to keep your code protected.
+**ObscuPy** is an advanced, high-security Python obfuscator designed to make reverse-engineering *extremely* difficult. It uses **Cython compilation**, **multi-layer encryption**, **anti-debugging**, and an **ephemeral execution loader** to keep your code protected.
 
 > ⚠️ **Windows-only.** The tool relies on Windows-specific compilation and anti-debugging APIs.
 
@@ -11,11 +11,11 @@ Created by **Ben281211** — https://github.com/Ben281211/ObscuPy
 
 - **Native Compilation (Cython)** — Transforms Python source into optimized machine code (`.pyd`).
 - **Multi-Stage Encryption Pipeline** — zlib compression → XOR (PBKDF2-derived key) → AES-256-CBC → Base64 packaging.
-- **Memory-Only Execution** — Decrypted binary runs from memory and is removed automatically.
+- **Ephemeral Storage & Import** — Decrypted binary is dropped to a temporary location, imported directly into the Python module space, and scheduled for deletion.
 - **Anti-Debugging & Anti-VM** — Multiple checks (Python-level and native) with a watchdog thread.
 - **Strings & Imports Obfuscation** — Randomized names, obfuscated string literals, and multiple import styles.
 - **Junk Code Injection** — Random harmless functions and noise to confuse static analysis.
-- **Automatic Cleanup** — Temporary files removed asynchronously after execution.
+- **Automatic Cleanup** — Temporary files are reliably removed asynchronously after execution using detached background processes.
 
 ---
 
@@ -23,7 +23,7 @@ Created by **Ben281211** — https://github.com/Ben281211/ObscuPy
 
 - **OS:** Windows 10 / 11
 - **Python:** 3.8+
-- **Dependencies:** `Cython`, `pycryptodome`
+- **Dependencies:** `Cython`, `pycryptodome`, `colorama` (optional, for CLI colors)
 - **Build Tools:** Microsoft Visual C++ / Build Tools (for compiling Cython extensions)
 
 ---
@@ -41,11 +41,14 @@ Make sure Microsoft Build Tools are installed and available in your environment.
 ## Usage
 
 ```bash
-python ObscuPy.py input.py output.py
+python ObscuPy.py [input.py] [-o output.py] [-v]
 ```
 
-- `input.py` — your original Python script
-- `output.py` — the generated obfuscated loader (pure Python loader + encrypted payload)
+### Arguments
+- `input.py` — Your original `.py` source file.
+- `-o, --output` — The generated obfuscated loader filename (default: `obfuscated.py`).
+- `-v, --version` — Display version information.
+- `-h, --help` — Show help menu and usage details.
 
 The loader will: decode the payload, derive keys (PBKDF2), decrypt and decompress the protected `.pyd` binary, write it to a temporary location, import it in-memory, then schedule cleanup.
 
@@ -66,7 +69,7 @@ The loader will: decode the payload, derive keys (PBKDF2), decrypt and decompres
 Command-line:
 
 ```bash
-python ObscuPy.py example_script.py protected_loader.py
+python ObscuPy.py example_script.py -o protected_loader.py
 ```
 
 After successful run, `protected_loader.py` will be the obfuscated loader you can distribute.
