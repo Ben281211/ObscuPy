@@ -31,7 +31,7 @@ Created by **Ben281211** — https://github.com/Ben281211/ObscuPy
 ## Installation
 
 ```bash
-pip install cython pycryptodome
+pip install cython pycryptodome colorama
 ```
 
 Make sure Microsoft Build Tools are installed and available in your environment.
